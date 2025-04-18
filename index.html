@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+html<!DOCTYPE html>
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
@@ -81,65 +81,88 @@
             }, [dieselVerbruik, dieselWTW, hvoWTW, hvoPercentage]);
             
             const handleExport = () => {
-                const printWindow = window.open('', '_blank');
-                printWindow.document.write(`
-                    <html>
-                    <head>
-                        <title>CO2 Besparingscalculator Rapport</title>
-                        <style>
-                            body { font-family: Arial, sans-serif; padding: 20px; }
-                            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                            th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
-                            th { background-color: #f2f2f2; }
-                        </style>
-                    </head>
-                    <body>
-                        <h1>CO2 Besparingscalculator Rapport</h1>
-                        <p>Datum: ${new Date().toLocaleDateString()}</p>
-                        
-                        <h2>Invoergegevens</h2>
-                        <table>
-                            <tr><th>Parameter</th><th>Waarde</th></tr>
-                            <tr><td>Totaal brandstofverbruik</td><td>${dieselVerbruik.toLocaleString()} liter</td></tr>
-                            <tr><td>Berekeningsmethode</td><td>${berekeningsmethode.toUpperCase()}</td></tr>
-                            <tr><td>Diesel ${berekeningsmethode.toUpperCase()} CO2-factor</td><td>${dieselWTW} kg CO2/liter</td></tr>
-                            <tr><td>HVO100 ${berekeningsmethode.toUpperCase()} CO2-factor</td><td>${hvoWTW} kg CO2/liter</td></tr>
-                            <tr><td>Gekozen HVO100 percentage</td><td>${hvoPercentage}%</td></tr>
-                        </table>
-                        
-                        <h2>Brandstofverdeling</h2>
-                        <table>
-                            <tr><th>Brandstoftype</th><th>Volume (liter)</th><th>Percentage</th></tr>
-                            <tr><td>Diesel</td><td>${Math.round(dieselVerbruik * (1 - hvoPercentage / 100)).toLocaleString()}</td><td>${(100 - hvoPercentage)}%</td></tr>
-                            <tr><td>HVO100</td><td>${Math.round(dieselVerbruik * (hvoPercentage / 100)).toLocaleString()}</td><td>${hvoPercentage}%</td></tr>
-                        </table>
-                        
-                        <h2>CO2-uitstoot resultaten</h2>
-                        <table>
-                            <tr><th>Scenario</th><th>CO2-uitstoot (kg)</th></tr>
-                            <tr><td>100% Diesel</td><td>${Math.round(dieselCO2).toLocaleString()}</td></tr>
-                            <tr><td>Huidige mix</td><td>${Math.round(gemengdCO2).toLocaleString()}</td></tr>
-                            <tr><td>100% HVO100</td><td>${Math.round(hvoCO2).toLocaleString()}</td></tr>
-                        </table>
-                        
-                        <h2>CO2-besparing</h2>
-                        <table>
-                            <tr><th>Type besparing</th><th>Waarde</th></tr>
-                            <tr><td>Absolute besparing</td><td>${Math.round(besparing).toLocaleString()} kg CO2</td></tr>
-                            <tr><td>Relatieve besparing</td><td>${besparingPercentage.toFixed(1)}%</td></tr>
-                        </table>
-                        
-                        <p style="margin-top: 30px; font-style: italic;">
-                            ${berekeningsmethode === 'wtw' ? 
-                                'WTW (Well-to-Wheel) berekent de totale CO2-uitstoot in de gehele keten, van productie tot verbruik.' : 
-                                'TTW (Tank-to-Wheel) berekent alleen de CO2-uitstoot bij verbranding van de brandstof.'
-                            }
-                        </p>
-                    </body>
-                    </html>
-                `);
-                printWindow.document.close();
-                setTimeout(() => printWindow.print(), 500);
+                try {
+                    // Vereenvoudigde export functie om crashes te voorkomen
+                    const printWindow = window.open('', '_blank');
+                    
+                    if (!printWindow) {
+                        alert("Popup blokkering kan actief zijn. Sta popups toe voor deze site.");
+                        return;
+                    }
+                    
+                    printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>CO2 Besparingscalculator Rapport</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; padding: 20px; }
+                                h1, h2 { color: #333; }
+                                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                                th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+                                th { background-color: #f2f2f2; }
+                            </style>
+                        </head>
+                        <body>
+                            <h1>CO2 Besparingscalculator Rapport</h1>
+                            <p>Datum: ${new Date().toLocaleDateString()}</p>
+                            
+                            <h2>Invoergegevens</h2>
+                            <table>
+                                <tr><th>Parameter</th><th>Waarde</th></tr>
+                                <tr><td>Totaal brandstofverbruik</td><td>${dieselVerbruik.toLocaleString()} liter</td></tr>
+                                <tr><td>Berekeningsmethode</td><td>${berekeningsmethode.toUpperCase()}</td></tr>
+                                <tr><td>Diesel ${berekeningsmethode.toUpperCase()} CO2-factor</td><td>${dieselWTW} kg CO2/liter</td></tr>
+                                <tr><td>HVO100 ${berekeningsmethode.toUpperCase()} CO2-factor</td><td>${hvoWTW} kg CO2/liter</td></tr>
+                                <tr><td>Gekozen HVO100 percentage</td><td>${hvoPercentage}%</td></tr>
+                            </table>
+                            
+                            <h2>Brandstofverdeling</h2>
+                            <table>
+                                <tr><th>Brandstoftype</th><th>Volume (liter)</th><th>Percentage</th></tr>
+                                <tr><td>Diesel</td><td>${Math.round(dieselVerbruik * (1 - hvoPercentage / 100)).toLocaleString()}</td><td>${(100 - hvoPercentage)}%</td></tr>
+                                <tr><td>HVO100</td><td>${Math.round(dieselVerbruik * (hvoPercentage / 100)).toLocaleString()}</td><td>${hvoPercentage}%</td></tr>
+                            </table>
+                            
+                            <h2>CO2-uitstoot resultaten</h2>
+                            <table>
+                                <tr><th>Scenario</th><th>CO2-uitstoot (kg)</th></tr>
+                                <tr><td>100% Diesel</td><td>${Math.round(dieselCO2).toLocaleString()}</td></tr>
+                                <tr><td>Huidige mix</td><td>${Math.round(gemengdCO2).toLocaleString()}</td></tr>
+                                <tr><td>100% HVO100</td><td>${Math.round(hvoCO2).toLocaleString()}</td></tr>
+                            </table>
+                            
+                            <h2>CO2-besparing</h2>
+                            <table>
+                                <tr><th>Type besparing</th><th>Waarde</th></tr>
+                                <tr><td>Absolute besparing</td><td>${Math.round(besparing).toLocaleString()} kg CO2</td></tr>
+                                <tr><td>Relatieve besparing</td><td>${besparingPercentage.toFixed(1)}%</td></tr>
+                            </table>
+                            
+                            <p style="margin-top: 30px; font-style: italic;">
+                                ${berekeningsmethode === 'wtw' ? 
+                                    'WTW (Well-to-Wheel) berekent de totale CO2-uitstoot in de gehele keten, van productie tot verbruik.' : 
+                                    'TTW (Tank-to-Wheel) berekent alleen de CO2-uitstoot bij verbranding van de brandstof.'
+                                }
+                            </p>
+                        </body>
+                        </html>
+                    `);
+                    
+                    printWindow.document.close();
+                    
+                    setTimeout(() => {
+                        try {
+                            printWindow.print();
+                        } catch(e) {
+                            console.error("Printen mislukt:", e);
+                            alert("Er is een probleem opgetreden bij het printen. Probeer handmatig te printen met Ctrl+P.");
+                        }
+                    }, 500);
+                } catch(e) {
+                    console.error("Export error:", e);
+                    alert("Er is een probleem opgetreden bij het exporteren. Controleer of popups zijn toegestaan voor deze site.");
+                }
             };
 
             // Icoon voor de print knop
@@ -151,41 +174,13 @@
                 </svg>
             );
 
-            // Pyat Logo als SVG
-            const PyatLogo = () => (
-                <svg width="150" viewBox="0 0 300 150" xmlns="http://www.w3.org/2000/svg">
-                    <g>
-                        {/* Achtergrond */}
-                        <path d="M15,20 L245,20 C260,20 275,35 275,50 L275,70 C275,85 260,100 245,100 L15,100 C0,100 -15,85 -15,70 L-15,50 C-15,35 0,20 15,20 Z" fill="#009900" stroke="#ffcc00" strokeWidth="5" />
-                        
-                        {/* Tekst "pyat" */}
-                        <text x="125" y="65" fontFamily="Arial" fontSize="40" fontWeight="bold" fill="#ffcc00" textAnchor="middle">pyat</text>
-                        
-                        {/* Lijnen links */}
-                        <line x1="30" y1="50" x2="70" y2="50" stroke="#ffcc00" strokeWidth="2" />
-                        <line x1="30" y1="55" x2="70" y2="55" stroke="#ffcc00" strokeWidth="2" />
-                        <line x1="30" y1="60" x2="70" y2="60" stroke="#ffcc00" strokeWidth="2" />
-                        
-                        {/* Lijnen rechts */}
-                        <line x1="180" y1="50" x2="220" y2="50" stroke="#ffcc00" strokeWidth="2" />
-                        <line x1="180" y1="55" x2="220" y2="55" stroke="#ffcc00" strokeWidth="2" />
-                        <line x1="180" y1="60" x2="220" y2="60" stroke="#ffcc00" strokeWidth="2" />
-                        
-                        {/* Subtekst */}
-                        <text x="125" y="85" fontFamily="Arial" fontSize="10" fill="#ffcc00" textAnchor="middle">TRANSPORT | OPSLAG | DISTRIBUTIE</text>
-                    </g>
-                    
-                    {/* Slogan */}
-                    <text x="150" y="130" fontFamily="Arial" fontSize="18" fontStyle="italic" fill="#006600" textAnchor="middle">Met elkaar, voor elkaar</text>
-                </svg>
-            );
-
             return (
                 <div className="p-6 max-w-4xl mx-auto bg-white rounded-lg shadow-md" ref={printRef}>
                     {/* Logo en titel */}
                     <div className="flex flex-col items-center mb-8">
-                        <PyatLogo />
-                        <h1 className="text-2xl font-bold text-blue-800 mt-4">CO2 Besparingscalculator: Diesel vs. HVO100</h1>
+                        {/* Plaats voor het logo, zal later via GitHub worden toegevoegd */}
+                        {/* <img src="logo.png" alt="P. van der Nat Logo" className="w-64 h-auto mb-2" /> */}
+                        <h1 className="text-2xl font-bold text-blue-800">CO2 Besparingscalculator: Diesel vs. HVO100</h1>
                     </div>
                     
                     <div className="flex justify-end mb-4">
@@ -260,6 +255,26 @@
                         </div>
                     </div>
                     
+                    {/* Verplaatste visualisatie - nu boven de schuifbalk */}
+                    <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                        <h2 className="text-lg font-semibold mb-2 text-blue-700">Visualisatie van CO2-reductie</h2>
+                        <div className="w-full bg-gray-200 rounded-full h-6 mb-4">
+                            <div 
+                                className="bg-green-600 h-6 rounded-full" 
+                                style={{ width: `${besparingPercentage > 100 ? 100 : besparingPercentage}%` }}
+                            >
+                                <div className="px-2 text-xs text-white text-center leading-6 font-medium">
+                                    {besparingPercentage.toFixed(1)}% reductie
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600">
+                            <span>0% reductie</span>
+                            <span>50% reductie</span>
+                            <span>100% reductie</span>
+                        </div>
+                    </div>
+                    
                     <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                         <h2 className="text-xl font-semibold mb-3 text-blue-700">HVO100 Mengverhouding</h2>
                         <div className="flex items-center gap-3 mb-2">
@@ -326,25 +341,6 @@
                                     <p className="text-3xl font-bold text-green-700">{besparingPercentage.toFixed(1)}%</p>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                        <h2 className="text-lg font-semibold mb-2 text-blue-700">Visualisatie van CO2-reductie</h2>
-                        <div className="w-full bg-gray-200 rounded-full h-6 mb-4">
-                            <div 
-                                className="bg-green-600 h-6 rounded-full" 
-                                style={{ width: `${besparingPercentage > 100 ? 100 : besparingPercentage}%` }}
-                            >
-                                <div className="px-2 text-xs text-white text-center leading-6 font-medium">
-                                    {besparingPercentage.toFixed(1)}% reductie
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-600">
-                            <span>0% reductie</span>
-                            <span>50% reductie</span>
-                            <span>100% reductie</span>
                         </div>
                     </div>
                     
