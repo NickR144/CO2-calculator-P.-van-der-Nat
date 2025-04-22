@@ -221,14 +221,17 @@
                         <h1 className="text-2xl font-bold" style={{color: pvdnatGreen}}>CO2 Besparingscalculator: Diesel vs. HVO100</h1>
                     </div>
                     
-                    <div className="flex justify-end mb-4">
-                        <button 
-                            onClick={handleExport}
-                            className="flex items-center gap-2 px-4 py-2 text-white rounded transition pvdnat-button"
-                        >
-                            <PrinterIcon />
-                            <span>Exporteren</span>
-                        </button>
+                    {/* Toelichting - verplaatst naar boven */}
+                    <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                        <h2 className="text-lg font-semibold mb-2 text-gray-700">Toelichting</h2>
+                        <p className="text-sm text-gray-600">
+                            Deze calculator vergelijkt de CO2-uitstoot van conventionele diesel met HVO100 (Hydrotreated Vegetable Oil).
+                            HVO100 is een hernieuwbare diesel die gemaakt wordt van plantaardige oliën en vetten en kan een significante CO2-reductie opleveren.
+                        </p>
+                        <p className="text-sm text-gray-600 mt-2">
+                            Met de schuifbalk kunt u simuleren wat de CO2-uitstoot zou zijn bij verschillende mengverhoudingen van reguliere diesel en HVO100. 
+                            Bij 0% is er alleen dieselgebruik, bij 100% wordt alle diesel vervangen door HVO100.
+                        </p>
                     </div>
                     
                     {/* Berekeningsmethode keuze */}
@@ -382,16 +385,15 @@
                         </div>
                     </div>
                     
-                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                        <h2 className="text-lg font-semibold mb-2 text-gray-700">Toelichting</h2>
-                        <p className="text-sm text-gray-600">
-                            Deze calculator vergelijkt de CO2-uitstoot van conventionele diesel met HVO100 (Hydrotreated Vegetable Oil).
-                            HVO100 is een hernieuwbare diesel die gemaakt wordt van plantaardige oliën en vetten en kan een significante CO2-reductie opleveren.
-                        </p>
-                        <p className="text-sm text-gray-600 mt-2">
-                            Met de schuifbalk kunt u simuleren wat de CO2-uitstoot zou zijn bij verschillende mengverhoudingen van reguliere diesel en HVO100. 
-                            Bij 0% is er alleen dieselgebruik, bij 100% wordt alle diesel vervangen door HVO100.
-                        </p>
+                    {/* Export knop - verplaatst naar beneden */}
+                    <div className="flex justify-end mt-6 mb-4">
+                        <button 
+                            onClick={handleExport}
+                            className="flex items-center gap-2 px-4 py-2 text-white rounded transition pvdnat-button"
+                        >
+                            <PrinterIcon />
+                            <span>Exporteren</span>
+                        </button>
                     </div>
                 </div>
             );
