@@ -464,9 +464,9 @@
                         </p>
                       </div>
                       <div>
-                        <p className="text-lg font-medium mb-1">Relatief kostenverschil:</p>
-                        <p className={`text-3xl font-bold ${reductiedoelKostenVerschilPercentage >= 0 ? 'text-red-600' : 'text-
-                                                        <p className={`text-3xl font-bold ${reductiedoelKostenVerschilPercentage >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        <p className="text-lg font-medium mb-1">Relatief kost
+                            <p className="text-lg font-medium mb-1">Relatief kostenverschil:</p>
+                       <p className={`text-3xl font-bold ${reductiedoelKostenVerschilPercentage >= 0 ? 'text-red-600' : 'text-green-600'}`}>
                          {reductiedoelKostenVerschilPercentage.toFixed(1)}%
                        </p>
                      </div>
@@ -478,7 +478,7 @@
                </div>
              );
            };
-                       
+                      
            // Render methode voor simulator tab
            const renderSimulatorTab = () => {
                return (
@@ -591,7 +591,7 @@
                    </>
                );
            };
-                       
+                      
            // Render methode voor reductiedoel tab
            const renderReductiedoelTab = () => {
                // Bereken maximale reductie voor deze brandstofcombinatie
@@ -714,7 +714,7 @@
                    </>
                );
            };
-                       
+                      
            // Main render method
            return (
                <div className="p-6 max-w-4xl mx-auto bg-white rounded-lg shadow-md" ref={printRef}>
