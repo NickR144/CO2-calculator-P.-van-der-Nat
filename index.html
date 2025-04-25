@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -86,6 +85,11 @@
             const DIESEL_TTW = 2.468;
             const HVO100_TTW = 0.032;
             
+            // NIEUW: Constanten voor prijzen (per 100L)
+            const DIESEL_PRICE_PER_100L = 122.38; // Gemiddelde dieselprijs per 100L
+            const HVO100_PRICE_PER_100L = 131.82; // Gemiddelde HVO100 prijs per 100L
+            const PRICE_DIFFERENCE_PERCENTAGE = 7.71; // Procentueel verschil in prijs
+            
             const [activeTab, setActiveTab] = useState('simulator'); // 'simulator' of 'reductiedoel'
             const [dieselVerbruik, setDieselVerbruik] = useState(2669369);
             const [berekeningsmethode, setBerekeningsmethode] = useState('wtw'); // 'wtw' of 'ttw'
@@ -99,14 +103,28 @@
             const [besparingPercentage, setBesparingPercentage] = useState(0);
             const printRef = useRef(null);
             
+            // NIEUW: State voor prijsinformatie
+            const [dieselKosten, setDieselKosten] = useState(0);
+            const [hvoKosten, setHvoKosten] = useState(0);
+            const [totaleMixKosten, setTotaleMixKosten] = useState(0);
+            const [volledgeDieselKosten, setVolledgeDieselKosten] = useState(0);
+            const [kostenVerschil, setKostenVerschil] = useState(0);
+            const [kostenVerschilPercentage, setKostenVerschilPercentage] = useState(0);
+            
             // Nieuwe state voor reductiedoel tab
             const [doelReductiePercentage, setDoelReductiePercentage] = useState(15.2);
             const [benodigdHvoPercentage, setBenodigdHvoPercentage] = useState(0);
             const [benodigdHvoLiters, setBenodigdHvoLiters] = useState(0);
             
+            // NIEUW: State voor reductiedoel kosten
+            const [reductiedoelKosten, setReductiedoelKosten] = useState(0);
+            const [reductiedoelKostenVerschil, setReductiedoelKostenVerschil] = useState(0);
+            const [reductiedoelKostenVerschilPercentage, setReductiedoelKostenVerschilPercentage] = useState(0);
+            
             // PvdNat groene kleur
             const pvdnatGreen = "#00571A";
-             // Wissel tussen WTW en TTW berekeningsmethode
+            
+            // Wissel tussen WTW en TTW berekeningsmethode
             const wisselBerekeningsmethode = (methode) => {
                 setBerekeningsmethode(methode);
                 if (methode === 'wtw') {
@@ -138,6 +156,25 @@
                 setGemengdCO2(gemengdeTotaal);
                 setBesparing(verschil);
                 setBesparingPercentage(percentage);
+                
+                // NIEUW: Kostenberekening
+                // Kosten zijn per 100L, dus delen door 100
+                const dieselKost = dieselHoeveelheid * (DIESEL_PRICE_PER_100L / 100);
+                const hvoKost = hvoHoeveelheid * (HVO100_PRICE_PER_100L / 100);
+                const totaalMixKost = dieselKost + hvoKost;
+                const volledigDieselKost = dieselVerbruik * (DIESEL_PRICE_PER_100L / 100);
+                
+                // Kostenverschil berekenen
+                const kostVerschil = totaalMixKost - volledigDieselKost;
+                const kostVerschilPercentage = (kostVerschil / volledigDieselKost) * 100;
+                
+                // Kosten state updaten
+                setDieselKosten(dieselKost);
+                setHvoKosten(hvoKost);
+                setTotaleMixKosten(totaalMixKost);
+                setVolledgeDieselKosten(volledigDieselKost);
+                setKostenVerschil(kostVerschil);
+                setKostenVerschilPercentage(kostVerschilPercentage);
             }, [dieselVerbruik, dieselWTW, hvoWTW, hvoPercentage]);
             
             // Bereken benodigde HVO percentage voor het reductiedoel
@@ -167,8 +204,23 @@
                 
                 setBenodigdHvoPercentage(hvoPercent * 100);
                 setBenodigdHvoLiters(liters);
+                
+                // NIEUW: Bereken kosten voor het reductiedoel
+                const dieselLiters = dieselVerbruik - liters;
+                const dieselKost = dieselLiters * (DIESEL_PRICE_PER_100L / 100);
+                const hvoKost = liters * (HVO100_PRICE_PER_100L / 100);
+                const totaalKost = dieselKost + hvoKost;
+                const volledigDieselKost = dieselVerbruik * (DIESEL_PRICE_PER_100L / 100);
+                
+                const kostVerschil = totaalKost - volledigDieselKost;
+                const kostVerschilPercentage = (kostVerschil / volledigDieselKost) * 100;
+                
+                setReductiedoelKosten(totaalKost);
+                setReductiedoelKostenVerschil(kostVerschil);
+                setReductiedoelKostenVerschilPercentage(kostVerschilPercentage);
             }, [doelReductiePercentage, dieselVerbruik, dieselWTW, hvoWTW]);
-                        const handleExport = () => {
+            
+            const handleExport = () => {
                 try {
                     // Vereenvoudigde export functie om crashes te voorkomen
                     const printWindow = window.open('', '_blank');
@@ -231,6 +283,18 @@
                                 <tr><td>Absolute besparing</td><td>${Math.round(besparing).toLocaleString()} kg CO2</td></tr>
                                 <tr><td>Relatieve besparing</td><td>${besparingPercentage.toFixed(1)}%</td></tr>
                             </table>
+                            
+                            <!-- NIEUW: Kosteninformatie in export -->
+                            <h2>Kosteninformatie</h2>
+                            <table>
+                                <tr><th>Kostentype</th><th>Waarde</th></tr>
+                                <tr><td>Kosten 100% Diesel</td><td>€ ${Math.round(volledgeDieselKosten).toLocaleString()}</td></tr>
+                                <tr><td>Kosten huidige mix</td><td>€ ${Math.round(totaleMixKosten).toLocaleString()}</td></tr>
+                                <tr><td>- waarvan Diesel</td><td>€ ${Math.round(dieselKosten).toLocaleString()}</td></tr>
+                                <tr><td>- waarvan HVO100</td><td>€ ${Math.round(hvoKosten).toLocaleString()}</td></tr>
+                                <tr><td>Absoluut kostenverschil</td><td>€ ${Math.round(kostenVerschil).toLocaleString()}</td></tr>
+                                <tr><td>Relatief kostenverschil</td><td>${kostenVerschilPercentage.toFixed(1)}%</td></tr>
+                            </table>
                         `;
                     } else {
                         content += `
@@ -251,6 +315,18 @@
                                 <tr><td>Benodigde HVO100 hoeveelheid</td><td>${Math.round(benodigdHvoLiters).toLocaleString()} liter</td></tr>
                                 <tr><td>Resterende diesel hoeveelheid</td><td>${Math.round(dieselVerbruik - benodigdHvoLiters).toLocaleString()} liter</td></tr>
                             </table>
+                            
+                            <!-- NIEUW: Kosteninformatie voor reductiedoel in export -->
+                            <h2>Kosteninformatie voor reductiedoel</h2>
+                            <table>
+                                <tr><th>Kostentype</th><th>Waarde</th></tr>
+                                <tr><td>Kosten 100% Diesel</td><td>€ ${Math.round(volledgeDieselKosten).toLocaleString()}</td></tr>
+                                <tr><td>Kosten reductiedoel mix</td><td>€ ${Math.round(reductiedoelKosten).toLocaleString()}</td></tr>
+                                <tr><td>- waarvan Diesel</td><td>€ ${Math.round((dieselVerbruik - benodigdHvoLiters) * (DIESEL_PRICE_PER_100L / 100)).toLocaleString()}</td></tr>
+                                <tr><td>- waarvan HVO100</td><td>€ ${Math.round(benodigdHvoLiters * (HVO100_PRICE_PER_100L / 100)).toLocaleString()}</td></tr>
+                                <tr><td>Absoluut kostenverschil</td><td>€ ${Math.round(reductiedoelKostenVerschil).toLocaleString()}</td></tr>
+                                <tr><td>Relatief kostenverschil</td><td>${reductiedoelKostenVerschilPercentage.toFixed(1)}%</td></tr>
+                            </table>
                         `;
                     }
                     
@@ -261,6 +337,10 @@
                                     'WTW (Well-to-Wheel) berekent de totale CO2-uitstoot in de gehele keten, van productie tot verbruik.' : 
                                     'TTW (Tank-to-Wheel) berekent alleen de CO2-uitstoot bij verbranding van de brandstof.'
                                 }
+                            </p>
+                            <p style="font-style: italic;">
+                                De prijsberekeningen zijn gebaseerd op gemiddelde prijzen: Diesel €${DIESEL_PRICE_PER_100L.toFixed(2)} per 100L, 
+                                HVO100 €${HVO100_PRICE_PER_100L.toFixed(2)} per 100L. Prijsverschil: ${PRICE_DIFFERENCE_PERCENTAGE.toFixed(1)}%.
                             </p>
                         </body>
                         </html>
@@ -291,340 +371,472 @@
                     <rect x="6" y="14" width="12" height="8"></rect>
                 </svg>
             );
-                        // Render methode voor simulator tab
-            const renderSimulatorTab = () => {
-                return (
-                    <>
-                        {/* Visualisatie van CO2-reductie */}
-                        <div className="mb-6 p-4 bg-green-50 rounded-lg">
-                            <h2 className="text-lg font-semibold mb-2 pvdnat-text">Visualisatie van CO2-reductie</h2>
-                            <div className="w-full bg-gray-200 rounded-full h-6 mb-4">
-                                <div 
-                                    className="pvdnat-progress h-6 rounded-full" 
-                                    style={{ 
-                                        width: `${besparingPercentage > 100 ? 100 : besparingPercentage}%`, 
-                                        backgroundColor: pvdnatGreen 
-                                    }}
-                                >
-                                    <div className="px-2 text-xs text-white text-center leading-6 font-medium">
-                                        {besparingPercentage.toFixed(1)}% reductie
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-600">
-                                <span>0% reductie</span>
-                                <span>50% reductie</span>
-                                <span>100% reductie</span>
-                            </div>
-                        </div>
-                        
-                        {/* HVO100 Mengverhouding */}
-                        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                            <h2 className="text-xl font-semibold mb-3 pvdnat-text">HVO100 Mengverhouding</h2>
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className="text-sm font-medium">100% Diesel</span>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    value={hvoPercentage}
-                                    onChange={(e) => setHvoPercentage(Number(e.target.value))}
-                                    className="flex-grow h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                                />
-                                <span className="text-sm font-medium">100% HVO100</span>
-                            </div>
-                            <div className="text-center mb-3">
-                                <span className="text-lg font-semibold pvdnat-text" style={{color: pvdnatGreen}}>
-                                    {hvoPercentage}% HVO100
-                                </span>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 p-3 bg-white rounded-lg shadow-sm">
-                                <div className="text-center p-2 bg-red-50 rounded">
-                                    <h3 className="text-sm font-medium text-gray-700">Dieselverbruik</h3>
-                                    <p className="text-xl font-bold text-red-600">
-                                        {Math.round(dieselVerbruik * (1 - hvoPercentage / 100)).toLocaleString()} liter
-                                    </p>
-                                    <p className="text-xs text-gray-500">({(100 - hvoPercentage)}% van totaal)</p>
-                                </div>
-                                <div className="text-center p-2 bg-green-50 rounded">
-                                    <h3 className="text-sm font-medium text-gray-700">HVO100 verbruik</h3>
-                                    <p className="text-xl font-bold text-green-600">
-                                        {Math.round(dieselVerbruik * (hvoPercentage / 100)).toLocaleString()} liter
-                                    </p>
-                                    <p className="text-xs text-gray-500">({hvoPercentage}% van totaal)</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Resultaten */}
-                        <div className="mb-8 p-4 bg-green-50 rounded-lg">
-                            <h2 className="text-xl font-semibold mb-4 text-green-700">Resultaten</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="p-4 bg-white rounded-lg shadow">
-                                    <h3 className="text-lg font-medium mb-2 text-gray-800">Uitstoot met 100% Diesel</h3>
-                                    <p className="text-3xl font-bold text-red-600">{Math.round(dieselCO2).toLocaleString()} kg CO2</p>
-                                </div>
-                                <div className="p-4 bg-white rounded-lg shadow">
-                                    <h3 className="text-lg font-medium mb-2 text-gray-800">Uitstoot met huidige mix</h3>
-                                    <p className="text-3xl font-bold text-orange-500">{Math.round(gemengdCO2).toLocaleString()} kg CO2</p>
-                                    <p className="text-lg font-medium mt-2">({(100 - hvoPercentage)}% diesel, {hvoPercentage}% HVO100)</p>
-                                </div>
-                                <div className="p-4 bg-white rounded-lg shadow">
-                                    <h3 className="text-lg font-medium mb-2 text-gray-800">Uitstoot met 100% HVO100</h3>
-                                    <p className="text-3xl font-bold text-green-600">{Math.round(hvoCO2).toLocaleString()} kg CO2</p>
-                                </div>
-                            </div>
-                            
-                            <div className="mt-6 p-5 bg-green-100 rounded-lg">
-                                <h3 className="text-xl font-semibold mb-3 pvdnat-text">CO2 Besparing met huidige mix</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-lg font-medium mb-1">Absolute besparing:</p>
-                                        <p className="text-3xl font-bold text-green-700">{Math.round(besparing).toLocaleString()} kg CO2</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-lg font-medium mb-1">Relatieve besparing:</p>
-                                        <p className="text-3xl font-bold text-green-700">{besparingPercentage.toFixed(1)}%</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </>
-                );
-            };
-                        // Render methode voor reductiedoel tab
-            const renderReductiedoelTab = () => {
-                // Bereken maximale reductie voor deze brandstofcombinatie
-                const maxReductie = ((dieselWTW - hvoWTW) / dieselWTW) * 100;
-                
-                return (
-                    <>
-                        <div className="mb-6 p-4 bg-yellow-50 rounded-lg">
-                            <h2 className="text-xl font-semibold mb-2 text-yellow-700">CO2-reductiedoel</h2>
-                            <p className="text-xs text-gray-600 mb-3">
-                                Voer hieronder het gewenste CO2-reductiepercentage in. De calculator berekent hoeveel HVO100 hiervoor nodig is.
-                                De maximaal haalbare reductie met HVO100 is {maxReductie.toFixed(1)}% bij de huidige emissiefactoren.
-                            </p>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Gewenst CO2-reductiepercentage (%)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max={maxReductie}
-                                        step="0.1"
-                                        value={doelReductiePercentage}
-                                        onChange={(e) => setDoelReductiePercentage(Math.min(Number(e.target.value), maxReductie))}
-                                        className="w-full p-2 border border-gray-300 rounded"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className="mb-6 p-4 bg-green-50 rounded-lg">
-                            <h2 className="text-lg font-semibold mb-2 pvdnat-text">Visualisatie van CO2-reductiedoel</h2>
-                            <div className="w-full bg-gray-200 rounded-full h-6 mb-4">
-                                <div 
-                                    className="pvdnat-progress h-6 rounded-full" 
-                                    style={{ 
-                                        width: `${doelReductiePercentage > 100 ? 100 : doelReductiePercentage}%`, 
-                                        backgroundColor: pvdnatGreen 
-                                    }}
-                                >
-                                    <div className="px-2 text-xs text-white text-center leading-6 font-medium">
-                                        {doelReductiePercentage.toFixed(1)}% reductiedoel
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-600">
-                                <span>0% reductie</span>
-                                <span>50% reductie</span>
-                                <span>100% reductie</span>
-                            </div>
-                        </div>
-                                                <div className="mb-8 p-4 bg-green-50 rounded-lg">
-                            <h2 className="text-xl font-semibold mb-4 pvdnat-text">Benodigde brandstofmix voor reductiedoel</h2>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="p-5 bg-white rounded-lg shadow">
-                                    <h3 className="text-lg font-medium mb-3 text-gray-800">Benodigde HVO100</h3>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-gray-600">HVO100 percentage:</span>
-                                        <span className="text-xl font-bold text-green-600">{benodigdHvoPercentage.toFixed(1)}%</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">HVO100 volume:</span>
-                                        <span className="text-xl font-bold text-green-600">{Math.round(benodigdHvoLiters).toLocaleString()} liter</span>
-                                    </div>
-                                </div>
-                                
-                                <div className="p-5 bg-white rounded-lg shadow">
-                                    <h3 className="text-lg font-medium mb-3 text-gray-800">Resterende diesel</h3>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-gray-600">Diesel percentage:</span>
-                                        <span className="text-xl font-bold text-red-600">{(100 - benodigdHvoPercentage).toFixed(1)}%</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">Diesel volume:</span>
-                                        <span className="text-xl font-bold text-red-600">{Math.round(dieselVerbruik - benodigdHvoLiters).toLocaleString()} liter</span>
-                                    </div>
-                                </div>
-                            </div>
-                                                                                <div className="mt-6 p-5 bg-green-100 rounded-lg">
-                                <h3 className="text-xl font-semibold mb-3 pvdnat-text">Verwachte CO2-impact</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-sm text-gray-600 mb-1">Uitstoot met 100% diesel:</p>
-                                        <p className="text-lg font-bold text-red-600">{Math.round(dieselCO2).toLocaleString()} kg CO2</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-600 mb-1">Uitstoot met berekende mix:</p>
-                                        <p className="text-lg font-bold text-green-600">
-                                            {Math.round(dieselCO2 * (1 - doelReductiePercentage / 100)).toLocaleString()} kg CO2
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-600 mb-1">Absolute CO2 besparing:</p>
-                                        <p className="text-lg font-bold text-green-600">
-                                            {Math.round(dieselCO2 * doelReductiePercentage / 100).toLocaleString()} kg CO2
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-600 mb-1">Relatieve besparing:</p>
-                                        <p className="text-lg font-bold text-green-600">{doelReductiePercentage.toFixed(1)}%</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </>
-                );
-            };
-                        // Main render method
-            return (
-                <div className="p-6 max-w-4xl mx-auto bg-white rounded-lg shadow-md" ref={printRef}>
-                    {/* Logo en titel */}
-                    <div className="flex flex-col items-center mb-8">
-                        {/* Plaats voor het logo, zal later via GitHub worden toegevoegd */}
-                        <img src="vandernat.jpeg" alt="P. van der Nat Logo" className="w-64 h-auto mb-2" />
-                        <h1 className="text-2xl font-bold" style={{color: pvdnatGreen}}>CO2 Besparingscalculator: Diesel vs. HVO100</h1>
+            
+            // NIEUW: Prijsinformatie component voor simulator tab
+            const PrijsInformatieComponent = ({ 
+              dieselKosten, 
+              hvoKosten, 
+              totaleMixKosten, 
+              volledgeDieselKosten, 
+              kostenVerschil, 
+              kostenVerschilPercentage 
+            }) => {
+              return (
+                <div className="mb-8 p-4 bg-blue-50 rounded-lg">
+                  <h2 className="text-xl font-semibold mb-4 pvdnat-text">Kosteninformatie</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-white rounded-lg shadow">
+                      <h3 className="text-lg font-medium mb-2 text-gray-800">Kosten met 100% Diesel</h3>
+                      <p className="text-3xl font-bold text-red-600">€ {Math.round(volledgeDieselKosten).toLocaleString()}</p>
                     </div>
-                    
-                    {/* Toelichting - verplaatst naar boven */}
-                    <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                        <h2 className="text-lg font-semibold mb-2 text-gray-700">Toelichting</h2>
-                        <p className="text-sm text-gray-600">
-                            Deze calculator vergelijkt de CO2-uitstoot van conventionele diesel met HVO100 (Hydrotreated Vegetable Oil).
-                            HVO100 is een hernieuwbare diesel die gemaakt wordt van plantaardige oliën en vetten en kan een significante CO2-reductie opleveren.
+                    <div className="p-4 bg-white rounded-lg shadow">
+                      <h3 className="text-lg font-medium mb-2 text-gray-800">Kosten met huidige mix</h3>
+                      <p className="text-3xl font-bold text-orange-500">€ {Math.round(totaleMixKosten).toLocaleString()}</p>
+                      <div className="mt-2">
+                        <p className="text-sm">Diesel: € {Math.round(dieselKosten).toLocaleString()}</p>
+                        <p className="text-sm">HVO100: € {Math.round(hvoKosten).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 p-5 bg-blue-100 rounded-lg">
+                    <h3 className="text-xl font-semibold mb-3 pvdnat-text">Kosten vergelijking</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-lg font-medium mb-1">Absoluut kostenverschil:</p>
+                        <p className={`text-3xl font-bold ${kostenVerschil >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          € {Math.round(kostenVerschil).toLocaleString()}
                         </p>
-                        <p className="text-sm text-gray-600 mt-2">
-                            Met de schuifbalk kunt u simuleren wat de CO2-uitstoot zou zijn bij verschillende mengverhoudingen van reguliere diesel en HVO100. 
-                            Bij 0% is er alleen dieselgebruik, bij 100% wordt alle diesel vervangen door HVO100.
+                      </div>
+                      <div>
+                        <p className="text-lg font-medium mb-1">Relatief kostenverschil:</p>
+                        <p className={`text-3xl font-bold ${kostenVerschilPercentage >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          {kostenVerschilPercentage.toFixed(1)}%
                         </p>
+                      </div>
                     </div>
-                    
-                    {/* Tabbladen navigatie */}
-                    <div className="flex mb-6 border-b">
-                        <button 
-                            className={`tab py-2 px-4 font-medium rounded-t-lg ${activeTab === 'simulator' ? 'tab-active' : 'text-gray-600'}`}
-                            onClick={() => setActiveTab('simulator')}
-                        >
-                            Mengverhouding Simulator
-                        </button>
-                        <button 
-                            className={`tab py-2 px-4 font-medium rounded-t-lg ${activeTab === 'reductiedoel' ? 'tab-active' : 'text-gray-600'}`}
-                            onClick={() => setActiveTab('reductiedoel')}
-                        >
-                            Reductiedoel Berekening
-                        </button>
-                    </div>
-                    
-                    {/* Berekeningsmethode keuze - gemeenschappelijk voor beide tabs */}
-                    <div className="mb-6 p-4 bg-yellow-50 rounded-lg">
-                        <h2 className="text-xl font-semibold mb-2 text-yellow-700">Berekeningsmethode</h2>
-                        <p className="text-xs text-gray-600 mb-3">
-                            WTW (Well-to-Wheel) berekent de totale CO2-uitstoot in de gehele keten, van productie tot verbruik. 
-                            TTW (Tank-to-Wheel) berekent alleen de directe CO2-uitstoot bij verbranding.
-                        </p>
-                        <div className="flex flex-wrap gap-4">
-                            <div className="flex items-center">
-                                <input
-                                    type="radio"
-                                    id="wtw"
-                                    name="berekeningsmethode"
-                                    value="wtw"
-                                    checked={berekeningsmethode === 'wtw'}
-                                    onChange={() => wisselBerekeningsmethode('wtw')}
-                                    className="mr-2"
-                                />
-                                <label htmlFor="wtw" className="text-sm font-medium">
-                                    Well-to-Wheel (WTW)
-                                </label>
-                            </div>
-                            <div className="flex items-center">
-                                <input
-                                    type="radio"
-                                    id="ttw"
-                                    name="berekeningsmethode"
-                                    value="ttw"
-                                    checked={berekeningsmethode === 'ttw'}
-                                    onChange={() => wisselBerekeningsmethode('ttw')}
-                                    className="mr-2"
-                                />
-                                <label htmlFor="ttw" className="text-sm font-medium">
-                                    Tank-to-Wheel (TTW)
-                                </label>
-                            </div>
-                            <div className="flex-grow text-right">
-                                <div className="text-sm font-medium">
-                                    <span className="block">Diesel: {dieselWTW} kg CO₂/liter</span>
-                                    <span className="block">HVO100: {hvoWTW} kg CO₂/liter</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Invoergegevens - gemeenschappelijk voor beide tabs */}
-                    <div className="mb-8 p-4 bg-green-50 rounded-lg">
-                        <h2 className="text-xl font-semibold mb-3 pvdnat-text">Invoergegevens</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Dieselverbruik (liters per jaar)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={dieselVerbruik}
-                                    onChange={(e) => setDieselVerbruik(Number(e.target.value))}
-                                    className="w-full p-2 border border-gray-300 rounded"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Conditonele rendering op basis van actieve tab */}
-                    {activeTab === 'simulator' ? renderSimulatorTab() : renderReductiedoelTab()}
-                    
-                    {/* Export knop - verplaatst naar beneden */}
-                    <div className="flex justify-end mt-6 mb-4">
-                        <button 
-                            onClick={handleExport}
-                            className="flex items-center gap-2 px-4 py-2 text-white rounded transition pvdnat-button"
-                        >
-                            <PrinterIcon />
-                            <span>Exporteren</span>
-                        </button>
-                    </div>
+                    <p className="mt-4 text-sm text-gray-600">
+                      Gemiddeld prijsverschil tussen HVO100 en diesel is ongeveer 8% (gebaseerd op historische data).
+                    </p>
+                  </div>
                 </div>
-            );
-        };
+              );
+            };
 
-        // Render de calculator
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<CO2Calculator />);
-    </script>
+            // NIEUW: Prijsinformatie component voor reductiedoel tab
+            const ReductiedoelPrijsComponent = ({ 
+              volledgeDieselKosten, 
+              reductiedoelKosten, 
+              reductiedoelKostenVerschil, 
+              reductiedoelKostenVerschilPercentage,
+              benodigdHvoLiters,
+              dieselVerbruik
+            }) => {
+              const dieselLiters = dieselVerbruik - benodigdHvoLiters;
+              const dieselKosten = dieselLiters * (DIESEL_PRICE_PER_100L / 100);
+              const hvoKosten = benodigdHvoLiters * (HVO100_PRICE_PER_100L / 100);
+              
+              return (
+                <div className="mb-8 p-4 bg-blue-50 rounded-lg">
+                  <h2 className="text-xl font-semibold mb-4 pvdnat-text">Kosteninformatie voor reductiedoel</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-white rounded-lg shadow">
+                      <h3 className="text-lg font-medium mb-2 text-gray-800">Kosten met 100% Diesel</h3>
+                      <p className="text-3xl font-bold text-red-600">€ {Math.round(volledgeDieselKosten).toLocaleString()}</p>
+                    </div>
+                    <div className="p-4 bg-white rounded-lg shadow">
+                      <h3 className="text-lg font-medium mb-2 text-gray-800">Kosten voor reductiedoel mix</h3>
+                      <p className="text-3xl font-bold text-orange-500">€ {Math.round(reductiedoelKosten).toLocaleString()}</p>
+                      <div className="mt-2">
+                        <p className="text-sm">Diesel: € {Math.round(dieselKosten).toLocaleString()}</p>
+                        <p className="text-sm">HVO100: € {Math.round(hvoKosten).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 p-5 bg-blue-100 rounded-lg">
+                    <h3 className="text-xl font-semibold mb-3 pvdnat-text">Kosten voor reductiedoel</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-lg font-medium mb-1">Absoluut kostenverschil:</p>
+                        <p className={`text-3xl font-bold ${reductiedoelKostenVerschil >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          € {Math.round(reductiedoelKostenVerschil).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-lg font-medium mb-1">Relatief kostenverschil:</p>
+                        <p className={`text-3xl font-bold ${reductiedoelKostenVerschilPercentage >= 0 ? 'text-red-600' : 'text-
+                                                        <p className={`text-3xl font-bold ${reductiedoelKostenVerschilPercentage >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                         {reductiedoelKostenVerschilPercentage.toFixed(1)}%
+                       </p>
+                     </div>
+                   </div>
+                   <p className="mt-4 text-sm text-gray-600">
+                     Gemiddeld prijsverschil tussen HVO100 en diesel is ongeveer 8% (gebaseerd op historische data).
+                   </p>
+                 </div>
+               </div>
+             );
+           };
+                       
+           // Render methode voor simulator tab
+           const renderSimulatorTab = () => {
+               return (
+                   <>
+                       {/* Visualisatie van CO2-reductie */}
+                       <div className="mb-6 p-4 bg-green-50 rounded-lg">
+                           <h2 className="text-lg font-semibold mb-2 pvdnat-text">Visualisatie van CO2-reductie</h2>
+                           <div className="w-full bg-gray-200 rounded-full h-6 mb-4">
+                               <div 
+                                   className="pvdnat-progress h-6 rounded-full" 
+                                   style={{ 
+                                       width: `${besparingPercentage > 100 ? 100 : besparingPercentage}%`, 
+                                       backgroundColor: pvdnatGreen 
+                                   }}
+                               >
+                                   <div className="px-2 text-xs text-white text-center leading-6 font-medium">
+                                       {besparingPercentage.toFixed(1)}% reductie
+                                   </div>
+                               </div>
+                           </div>
+                           <div className="flex justify-between text-xs text-gray-600">
+                               <span>0% reductie</span>
+                               <span>50% reductie</span>
+                               <span>100% reductie</span>
+                           </div>
+                       </div>
+                       
+                       {/* HVO100 Mengverhouding */}
+                       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                           <h2 className="text-xl font-semibold mb-3 pvdnat-text">HVO100 Mengverhouding</h2>
+                           <div className="flex items-center gap-3 mb-2">
+                               <span className="text-sm font-medium">100% Diesel</span>
+                               <input
+                                   type="range"
+                                   min="0"
+                                   max="100"
+                                   value={hvoPercentage}
+                                   onChange={(e) => setHvoPercentage(Number(e.target.value))}
+                                   className="flex-grow h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                               />
+                               <span className="text-sm font-medium">100% HVO100</span>
+                           </div>
+                           <div className="text-center mb-3">
+                               <span className="text-lg font-semibold pvdnat-text" style={{color: pvdnatGreen}}>
+                                   {hvoPercentage}% HVO100
+                               </span>
+                           </div>
+                           
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 p-3 bg-white rounded-lg shadow-sm">
+                               <div className="text-center p-2 bg-red-50 rounded">
+                                   <h3 className="text-sm font-medium text-gray-700">Dieselverbruik</h3>
+                                   <p className="text-xl font-bold text-red-600">
+                                       {Math.round(dieselVerbruik * (1 - hvoPercentage / 100)).toLocaleString()} liter
+                                   </p>
+                                   <p className="text-xs text-gray-500">({(100 - hvoPercentage)}% van totaal)</p>
+                               </div>
+                               <div className="text-center p-2 bg-green-50 rounded">
+                                   <h3 className="text-sm font-medium text-gray-700">HVO100 verbruik</h3>
+                                   <p className="text-xl font-bold text-green-600">
+                                       {Math.round(dieselVerbruik * (hvoPercentage / 100)).toLocaleString()} liter
+                                   </p>
+                                   <p className="text-xs text-gray-500">({hvoPercentage}% van totaal)</p>
+                               </div>
+                           </div>
+                       </div>
+
+                       {/* Resultaten */}
+                       <div className="mb-8 p-4 bg-green-50 rounded-lg">
+                           <h2 className="text-xl font-semibold mb-4 text-green-700">Resultaten</h2>
+                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                               <div className="p-4 bg-white rounded-lg shadow">
+                                   <h3 className="text-lg font-medium mb-2 text-gray-800">Uitstoot met 100% Diesel</h3>
+                                   <p className="text-3xl font-bold text-red-600">{Math.round(dieselCO2).toLocaleString()} kg CO2</p>
+                               </div>
+                               <div className="p-4 bg-white rounded-lg shadow">
+                                   <h3 className="text-lg font-medium mb-2 text-gray-800">Uitstoot met huidige mix</h3>
+                                   <p className="text-3xl font-bold text-orange-500">{Math.round(gemengdCO2).toLocaleString()} kg CO2</p>
+                                   <p className="text-lg font-medium mt-2">({(100 - hvoPercentage)}% diesel, {hvoPercentage}% HVO100)</p>
+                               </div>
+                               <div className="p-4 bg-white rounded-lg shadow">
+                                   <h3 className="text-lg font-medium mb-2 text-gray-800">Uitstoot met 100% HVO100</h3>
+                                   <p className="text-3xl font-bold text-green-600">{Math.round(hvoCO2).toLocaleString()} kg CO2</p>
+                               </div>
+                           </div>
+                           
+                           <div className="mt-6 p-5 bg-green-100 rounded-lg">
+                               <h3 className="text-xl font-semibold mb-3 pvdnat-text">CO2 Besparing met huidige mix</h3>
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                   <div>
+                                       <p className="text-lg font-medium mb-1">Absolute besparing:</p>
+                                       <p className="text-3xl font-bold text-green-700">{Math.round(besparing).toLocaleString()} kg CO2</p>
+                                   </div>
+                                   <div>
+                                       <p className="text-lg font-medium mb-1">Relatieve besparing:</p>
+                                       <p className="text-3xl font-bold text-green-700">{besparingPercentage.toFixed(1)}%</p>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
+                       
+                       {/* NIEUW: Prijsinformatie component toevoegen */}
+                       <PrijsInformatieComponent 
+                         dieselKosten={dieselKosten}
+                         hvoKosten={hvoKosten}
+                         totaleMixKosten={totaleMixKosten}
+                         volledgeDieselKosten={volledgeDieselKosten}
+                         kostenVerschil={kostenVerschil}
+                         kostenVerschilPercentage={kostenVerschilPercentage}
+                       />
+                   </>
+               );
+           };
+                       
+           // Render methode voor reductiedoel tab
+           const renderReductiedoelTab = () => {
+               // Bereken maximale reductie voor deze brandstofcombinatie
+               const maxReductie = ((dieselWTW - hvoWTW) / dieselWTW) * 100;
+               
+               return (
+                   <>
+                       <div className="mb-6 p-4 bg-yellow-50 rounded-lg">
+                           <h2 className="text-xl font-semibold mb-2 text-yellow-700">CO2-reductiedoel</h2>
+                           <p className="text-xs text-gray-600 mb-3">
+                               Voer hieronder het gewenste CO2-reductiepercentage in. De calculator berekent hoeveel HVO100 hiervoor nodig is.
+                               De maximaal haalbare reductie met HVO100 is {maxReductie.toFixed(1)}% bij de huidige emissiefactoren.
+                           </p>
+                           
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                               <div>
+                                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                                       Gewenst CO2-reductiepercentage (%)
+                                   </label>
+                                   <input
+                                       type="number"
+                                       min="0"
+                                       max={maxReductie}
+                                       step="0.1"
+                                       value={doelReductiePercentage}
+                                       onChange={(e) => setDoelReductiePercentage(Math.min(Number(e.target.value), maxReductie))}
+                                       className="w-full p-2 border border-gray-300 rounded"
+                                   />
+                               </div>
+                           </div>
+                       </div>
+                       
+                       <div className="mb-6 p-4 bg-green-50 rounded-lg">
+                           <h2 className="text-lg font-semibold mb-2 pvdnat-text">Visualisatie van CO2-reductiedoel</h2>
+                           <div className="w-full bg-gray-200 rounded-full h-6 mb-4">
+                               <div 
+                                   className="pvdnat-progress h-6 rounded-full" 
+                                   style={{ 
+                                       width: `${doelReductiePercentage > 100 ? 100 : doelReductiePercentage}%`, 
+                                       backgroundColor: pvdnatGreen 
+                                   }}
+                               >
+                                   <div className="px-2 text-xs text-white text-center leading-6 font-medium">
+                                       {doelReductiePercentage.toFixed(1)}% reductiedoel
+                                   </div>
+                               </div>
+                           </div>
+                           <div className="flex justify-between text-xs text-gray-600">
+                               <span>0% reductie</span>
+                               <span>50% reductie</span>
+                               <span>100% reductie</span>
+                           </div>
+                       </div>
+                       
+                       <div className="mb-8 p-4 bg-green-50 rounded-lg">
+                           <h2 className="text-xl font-semibold mb-4 pvdnat-text">Benodigde brandstofmix voor reductiedoel</h2>
+                           
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                               <div className="p-5 bg-white rounded-lg shadow">
+                                   <h3 className="text-lg font-medium mb-3 text-gray-800">Benodigde HVO100</h3>
+                                   <div className="flex items-center justify-between mb-2">
+                                       <span className="text-sm text-gray-600">HVO100 percentage:</span>
+                                       <span className="text-xl font-bold text-green-600">{benodigdHvoPercentage.toFixed(1)}%</span>
+                                   </div>
+                                   <div className="flex items-center justify-between">
+                                       <span className="text-sm text-gray-600">HVO100 volume:</span>
+                                       <span className="text-xl font-bold text-green-600">{Math.round(benodigdHvoLiters).toLocaleString()} liter</span>
+                                   </div>
+                               </div>
+                               
+                               <div className="p-5 bg-white rounded-lg shadow">
+                                   <h3 className="text-lg font-medium mb-3 text-gray-800">Resterende diesel</h3>
+                                   <div className="flex items-center justify-between mb-2">
+                                       <span className="text-sm text-gray-600">Diesel percentage:</span>
+                                       <span className="text-xl font-bold text-red-600">{(100 - benodigdHvoPercentage).toFixed(1)}%</span>
+                                   </div>
+                                   <div className="flex items-center justify-between">
+                                       <span className="text-sm text-gray-600">Diesel volume:</span>
+                                       <span className="text-xl font-bold text-red-600">{Math.round(dieselVerbruik - benodigdHvoLiters).toLocaleString()} liter</span>
+                                   </div>
+                               </div>
+                           </div>
+                           
+                           <div className="mt-6 p-5 bg-green-100 rounded-lg">
+                               <h3 className="text-xl font-semibold mb-3 pvdnat-text">Verwachte CO2-impact</h3>
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                   <div>
+                                       <p className="text-sm text-gray-600 mb-1">Uitstoot met 100% diesel:</p>
+                                       <p className="text-lg font-bold text-red-600">{Math.round(dieselCO2).toLocaleString()} kg CO2</p>
+                                   </div>
+                                   <div>
+                                       <p className="text-sm text-gray-600 mb-1">Uitstoot met berekende mix:</p>
+                                       <p className="text-lg font-bold text-green-600">
+                                           {Math.round(dieselCO2 * (1 - doelReductiePercentage / 100)).toLocaleString()} kg CO2
+                                       </p>
+                                   </div>
+                                   <div>
+                                       <p className="text-sm text-gray-600 mb-1">Absolute CO2 besparing:</p>
+                                       <p className="text-lg font-bold text-green-600">
+                                           {Math.round(dieselCO2 * doelReductiePercentage / 100).toLocaleString()} kg CO2
+                                       </p>
+                                   </div>
+                                   <div>
+                                       <p className="text-sm text-gray-600 mb-1">Relatieve besparing:</p>
+                                       <p className="text-lg font-bold text-green-600">{doelReductiePercentage.toFixed(1)}%</p>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
+                       
+                       {/* NIEUW: Prijsinformatie component toevoegen */}
+                       <ReductiedoelPrijsComponent 
+                         volledgeDieselKosten={volledgeDieselKosten}
+                         reductiedoelKosten={reductiedoelKosten}
+                         reductiedoelKostenVerschil={reductiedoelKostenVerschil}
+                         reductiedoelKostenVerschilPercentage={reductiedoelKostenVerschilPercentage}
+                         benodigdHvoLiters={benodigdHvoLiters}
+                         dieselVerbruik={dieselVerbruik}
+                       />
+                   </>
+               );
+           };
+                       
+           // Main render method
+           return (
+               <div className="p-6 max-w-4xl mx-auto bg-white rounded-lg shadow-md" ref={printRef}>
+                   {/* Logo en titel */}
+                   <div className="flex flex-col items-center mb-8">
+                       {/* Plaats voor het logo, zal later via GitHub worden toegevoegd */}
+                       <img src="vandernat.jpeg" alt="P. van der Nat Logo" className="w-64 h-auto mb-2" />
+                       <h1 className="text-2xl font-bold" style={{color: pvdnatGreen}}>CO2 Besparingscalculator: Diesel vs. HVO100</h1>
+                   </div>
+                   
+                   {/* Toelichting - verplaatst naar boven */}
+                   <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                       <h2 className="text-lg font-semibold mb-2 text-gray-700">Toelichting</h2>
+                       <p className="text-sm text-gray-600">
+                           Deze calculator vergelijkt de CO2-uitstoot van conventionele diesel met HVO100 (Hydrotreated Vegetable Oil).
+                           HVO100 is een hernieuwbare diesel die gemaakt wordt van plantaardige oliën en vetten en kan een significante CO2-reductie opleveren.
+                       </p>
+                       <p className="text-sm text-gray-600 mt-2">
+                           Met de schuifbalk kunt u simuleren wat de CO2-uitstoot zou zijn bij verschillende mengverhoudingen van reguliere diesel en HVO100. 
+                           Bij 0% is er alleen dieselgebruik, bij 100% wordt alle diesel vervangen door HVO100.
+                       </p>
+                   </div>
+                   
+                   {/* Tabbladen navigatie */}
+                   <div className="flex mb-6 border-b">
+                       <button 
+                           className={`tab py-2 px-4 font-medium rounded-t-lg ${activeTab === 'simulator' ? 'tab-active' : 'text-gray-600'}`}
+                           onClick={() => setActiveTab('simulator')}
+                       >
+                           Mengverhouding Simulator
+                       </button>
+                       <button 
+                           className={`tab py-2 px-4 font-medium rounded-t-lg ${activeTab === 'reductiedoel' ? 'tab-active' : 'text-gray-600'}`}
+                           onClick={() => setActiveTab('reductiedoel')}
+                       >
+                           Reductiedoel Berekening
+                       </button>
+                   </div>
+                   
+                   {/* Berekeningsmethode keuze - gemeenschappelijk voor beide tabs */}
+                   <div className="mb-6 p-4 bg-yellow-50 rounded-lg">
+                       <h2 className="text-xl font-semibold mb-2 text-yellow-700">Berekeningsmethode</h2>
+                       <p className="text-xs text-gray-600 mb-3">
+                           WTW (Well-to-Wheel) berekent de totale CO2-uitstoot in de gehele keten, van productie tot verbruik. 
+                           TTW (Tank-to-Wheel) berekent alleen de directe CO2-uitstoot bij verbranding.
+                       </p>
+                       <div className="flex flex-wrap gap-4">
+                           <div className="flex items-center">
+                               <input
+                                   type="radio"
+                                   id="wtw"
+                                   name="berekeningsmethode"
+                                   value="wtw"
+                                   checked={berekeningsmethode === 'wtw'}
+                                   onChange={() => wisselBerekeningsmethode('wtw')}
+                                   className="mr-2"
+                               />
+                               <label htmlFor="wtw" className="text-sm font-medium">
+                                   Well-to-Wheel (WTW)
+                               </label>
+                           </div>
+                           <div className="flex items-center">
+                               <input
+                                   type="radio"
+                                   id="ttw"
+                                   name="berekeningsmethode"
+                                   value="ttw"
+                                   checked={berekeningsmethode === 'ttw'}
+                                   onChange={() => wisselBerekeningsmethode('ttw')}
+                                   className="mr-2"
+                               />
+                               <label htmlFor="ttw" className="text-sm font-medium">
+                                   Tank-to-Wheel (TTW)
+                               </label>
+                           </div>
+                           <div className="flex-grow text-right">
+                               <div className="text-sm font-medium">
+                                   <span className="block">Diesel: {dieselWTW} kg CO₂/liter</span>
+                                   <span className="block">HVO100: {hvoWTW} kg CO₂/liter</span>
+                               </div>
+                           </div>
+                       </div>
+                   </div>
+                   
+                   {/* Invoergegevens - gemeenschappelijk voor beide tabs */}
+                   <div className="mb-8 p-4 bg-green-50 rounded-lg">
+                       <h2 className="text-xl font-semibold mb-3 pvdnat-text">Invoergegevens</h2>
+                       <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                           <div>
+                               <label className="block text-sm font-medium text-gray-700 mb-1">
+                                   Dieselverbruik (liters per jaar)
+                               </label>
+                               <input
+                                   type="number"
+                                   value={dieselVerbruik}
+                                   onChange={(e) => setDieselVerbruik(Number(e.target.value))}
+                                   className="w-full p-2 border border-gray-300 rounded"
+                               />
+                           </div>
+                       </div>
+                   </div>
+                   
+                   {/* Conditonele rendering op basis van actieve tab */}
+                   {activeTab === 'simulator' ? renderSimulatorTab() : renderReductiedoelTab()}
+                   
+                   {/* Export knop - verplaatst naar beneden */}
+                   <div className="flex justify-end mt-6 mb-4">
+                       <button 
+                           onClick={handleExport}
+                           className="flex items-center gap-2 px-4 py-2 text-white rounded transition pvdnat-button"
+                       >
+                           <PrinterIcon />
+                           <span>Exporteren</span>
+                       </button>
+                   </div>
+               </div>
+           );
+       };
+
+       // Render de calculator
+       const root = ReactDOM.createRoot(document.getElementById('root'));
+       root.render(<CO2Calculator />);
+   </script>
 </body>
 </html>
