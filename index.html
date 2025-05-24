@@ -85,7 +85,10 @@
             const DIESEL_TTW = 2.468;
             const HVO100_TTW = 0.032;
             
-            // NIEUW: Constanten voor prijzen (per 100L)
+            // NIEUW: Constante voor HVO100 meerverbruik
+            const HVO100_MEERVERBRUIK_PERCENTAGE = 1.8;
+            
+            // Constanten voor prijzen (per 100L)
             const DIESEL_PRICE_PER_100L = 122.38; // Gemiddelde dieselprijs per 100L
             const HVO100_PRICE_PER_100L = 131.82; // Gemiddelde HVO100 prijs per 100L
             const PRICE_DIFFERENCE_PERCENTAGE = 7.71; // Procentueel verschil in prijs
@@ -103,7 +106,10 @@
             const [besparingPercentage, setBesparingPercentage] = useState(0);
             const printRef = useRef(null);
             
-            // NIEUW: State voor prijsinformatie
+            // NIEUW: State voor HVO100 meerverbruik correctie
+            const [hvoMeerverbruikCorrectie, setHvoMeerverbruikCorrectie] = useState(false);
+            
+            // State voor prijsinformatie
             const [dieselKosten, setDieselKosten] = useState(0);
             const [hvoKosten, setHvoKosten] = useState(0);
             const [totaleMixKosten, setTotaleMixKosten] = useState(0);
@@ -111,12 +117,12 @@
             const [kostenVerschil, setKostenVerschil] = useState(0);
             const [kostenVerschilPercentage, setKostenVerschilPercentage] = useState(0);
             
-            // Nieuwe state voor reductiedoel tab
+            // State voor reductiedoel tab
             const [doelReductiePercentage, setDoelReductiePercentage] = useState(15.2);
             const [benodigdHvoPercentage, setBenodigdHvoPercentage] = useState(0);
             const [benodigdHvoLiters, setBenodigdHvoLiters] = useState(0);
             
-            // NIEUW: State voor reductiedoel kosten
+            // State voor reductiedoel kosten
             const [reductiedoelKosten, setReductiedoelKosten] = useState(0);
             const [reductiedoelKostenVerschil, setReductiedoelKostenVerschil] = useState(0);
             const [reductiedoelKostenVerschilPercentage, setReductiedoelKostenVerschilPercentage] = useState(0);
@@ -138,11 +144,19 @@
 
             useEffect(() => {
                 const dieselTotaal = dieselVerbruik * dieselWTW;
-                const volledigeHvoTotaal = dieselVerbruik * hvoWTW;
                 
-                // Berekening van de gemengde uitstoot op basis van de schuifbalk
-                const hvoHoeveelheid = dieselVerbruik * (hvoPercentage / 100);
-                const dieselHoeveelheid = dieselVerbruik * (1 - hvoPercentage / 100);
+                // AANGEPAST: Bereken werkelijke verbruiken met meerverbruik correctie
+                let hvoHoeveelheid = dieselVerbruik * (hvoPercentage / 100);
+                let dieselHoeveelheid = dieselVerbruik * (1 - hvoPercentage / 100);
+                
+                // Als meerverbruik correctie aan staat, verhoog dan HVO hoeveelheid
+                if (hvoMeerverbruikCorrectie) {
+                    hvoHoeveelheid = hvoHoeveelheid * (1 + HVO100_MEERVERBRUIK_PERCENTAGE / 100);
+                }
+                
+                const volledigeHvoTotaal = hvoMeerverbruikCorrectie ? 
+                    (dieselVerbruik * (1 + HVO100_MEERVERBRUIK_PERCENTAGE / 100)) * hvoWTW : 
+                    dieselVerbruik * hvoWTW;
                 
                 const werkelijkeDieselCO2 = dieselHoeveelheid * dieselWTW;
                 const werkelijkeHvoCO2 = hvoHoeveelheid * hvoWTW;
@@ -157,8 +171,7 @@
                 setBesparing(verschil);
                 setBesparingPercentage(percentage);
                 
-                // NIEUW: Kostenberekening
-                // Kosten zijn per 100L, dus delen door 100
+                // AANGEPAST: Kostenberekening met meerverbruik correctie
                 const dieselKost = dieselHoeveelheid * (DIESEL_PRICE_PER_100L / 100);
                 const hvoKost = hvoHoeveelheid * (HVO100_PRICE_PER_100L / 100);
                 const totaalMixKost = dieselKost + hvoKost;
@@ -175,7 +188,7 @@
                 setVolledgeDieselKosten(volledigDieselKost);
                 setKostenVerschil(kostVerschil);
                 setKostenVerschilPercentage(kostVerschilPercentage);
-            }, [dieselVerbruik, dieselWTW, hvoWTW, hvoPercentage]);
+            }, [dieselVerbruik, dieselWTW, hvoWTW, hvoPercentage, hvoMeerverbruikCorrectie]);
             
             // Bereken benodigde HVO percentage voor het reductiedoel
             useEffect(() => {
@@ -189,24 +202,31 @@
                     return;
                 }
                 
-                // Als doelreductie groter is dan theoretisch maximum, cap op maximum
-                const maxReductie = ((dieselWTW - hvoWTW) / dieselWTW) * 100;
+                // AANGEPAST: Bereken maximum reductie rekening houdend met meerverbruik
+                let effectieveHvoWTW = hvoWTW;
+                if (hvoMeerverbruikCorrectie) {
+                    // Bij meerverbruik moeten we de effectieve emissiefactor aanpassen
+                    effectieveHvoWTW = hvoWTW * (1 + HVO100_MEERVERBRUIK_PERCENTAGE / 100);
+                }
+                
+                const maxReductie = ((dieselWTW - effectieveHvoWTW) / dieselWTW) * 100;
                 const effectieveReductie = Math.min(doelReductiePercentage, maxReductie);
                 
-                // Bereken het benodigde HVO percentage
-                // Formule is afgeleid van: reductie% = (diesel_wtw - gemengd_wtw) / diesel_wtw * 100
-                // waarbij gemengd_wtw = diesel_wtw * (1 - hvo%) + hvo_wtw * hvo%
-                const verschil = dieselWTW - hvoWTW;
+                // AANGEPAST: Bereken het benodigde HVO percentage met meerverbruik correctie
+                const verschil = dieselWTW - effectieveHvoWTW;
                 const hvoPercent = (effectieveReductie / 100) * dieselWTW / verschil;
                 
-                // Bereken benodigde liters HVO
-                const liters = dieselVerbruik * (hvoPercent * 100) / 100;
+                // AANGEPAST: Bereken benodigde liters HVO met meerverbruik correctie
+                let liters = dieselVerbruik * (hvoPercent * 100) / 100;
+                if (hvoMeerverbruikCorrectie) {
+                    liters = liters * (1 + HVO100_MEERVERBRUIK_PERCENTAGE / 100);
+                }
                 
                 setBenodigdHvoPercentage(hvoPercent * 100);
                 setBenodigdHvoLiters(liters);
                 
-                // NIEUW: Bereken kosten voor het reductiedoel
-                const dieselLiters = dieselVerbruik - liters;
+                // AANGEPAST: Bereken kosten voor het reductiedoel met meerverbruik correctie
+                const dieselLiters = dieselVerbruik - (dieselVerbruik * (hvoPercent * 100) / 100);
                 const dieselKost = dieselLiters * (DIESEL_PRICE_PER_100L / 100);
                 const hvoKost = liters * (HVO100_PRICE_PER_100L / 100);
                 const totaalKost = dieselKost + hvoKost;
@@ -218,7 +238,7 @@
                 setReductiedoelKosten(totaalKost);
                 setReductiedoelKostenVerschil(kostVerschil);
                 setReductiedoelKostenVerschilPercentage(kostVerschilPercentage);
-            }, [doelReductiePercentage, dieselVerbruik, dieselWTW, hvoWTW]);
+            }, [doelReductiePercentage, dieselVerbruik, dieselWTW, hvoWTW, hvoMeerverbruikCorrectie]);
             
             const handleExport = () => {
                 try {
@@ -228,6 +248,14 @@
                     if (!printWindow) {
                         alert("Popup blokkering kan actief zijn. Sta popups toe voor deze site.");
                         return;
+                    }
+                    
+                    // AANGEPAST: Bereken werkelijke volumes voor export met meerverbruik correctie
+                    let dieselVolumeActueel = Math.round(dieselVerbruik * (1 - hvoPercentage / 100));
+                    let hvoVolumeActueel = Math.round(dieselVerbruik * (hvoPercentage / 100));
+                    
+                    if (hvoMeerverbruikCorrectie) {
+                        hvoVolumeActueel = Math.round(hvoVolumeActueel * (1 + HVO100_MEERVERBRUIK_PERCENTAGE / 100));
                     }
                     
                     // Basis inhoud voor beide tabs
@@ -255,18 +283,19 @@
                             <h2>Invoergegevens</h2>
                             <table>
                                 <tr><th>Parameter</th><th>Waarde</th></tr>
-                                <tr><td>Totaal brandstofverbruik</td><td>${dieselVerbruik.toLocaleString()} liter</td></tr>
+                                <tr><td>Totaal brandstofverbruik (basis)</td><td>${dieselVerbruik.toLocaleString()} liter</td></tr>
                                 <tr><td>Berekeningsmethode</td><td>${berekeningsmethode.toUpperCase()}</td></tr>
                                 <tr><td>Diesel ${berekeningsmethode.toUpperCase()} CO2-factor</td><td>${dieselWTW} kg CO2/liter</td></tr>
                                 <tr><td>HVO100 ${berekeningsmethode.toUpperCase()} CO2-factor</td><td>${hvoWTW} kg CO2/liter</td></tr>
                                 <tr><td>Gekozen HVO100 percentage</td><td>${hvoPercentage}%</td></tr>
+                                <tr><td>HVO100 meerverbruik correctie</td><td>${hvoMeerverbruikCorrectie ? 'Ja (+1.8%)' : 'Nee'}</td></tr>
                             </table>
                             
-                            <h2>Brandstofverdeling</h2>
+                            <h2>Brandstofverdeling ${hvoMeerverbruikCorrectie ? '(inclusief 1.8% HVO100 meerverbruik)' : ''}</h2>
                             <table>
-                                <tr><th>Brandstoftype</th><th>Volume (liter)</th><th>Percentage</th></tr>
-                                <tr><td>Diesel</td><td>${Math.round(dieselVerbruik * (1 - hvoPercentage / 100)).toLocaleString()}</td><td>${(100 - hvoPercentage)}%</td></tr>
-                                <tr><td>HVO100</td><td>${Math.round(dieselVerbruik * (hvoPercentage / 100)).toLocaleString()}</td><td>${hvoPercentage}%</td></tr>
+                                <tr><th>Brandstoftype</th><th>Volume (liter)</th><th>Percentage van basis</th></tr>
+                                <tr><td>Diesel</td><td>${dieselVolumeActueel.toLocaleString()}</td><td>${(100 - hvoPercentage)}%</td></tr>
+                                <tr><td>HVO100</td><td>${hvoVolumeActueel.toLocaleString()}</td><td>${hvoPercentage}%${hvoMeerverbruikCorrectie ? ' (+1.8%)' : ''}</td></tr>
                             </table>
                             
                             <h2>CO2-uitstoot resultaten</h2>
@@ -274,7 +303,7 @@
                                 <tr><th>Scenario</th><th>CO2-uitstoot (kg)</th></tr>
                                 <tr><td>100% Diesel</td><td>${Math.round(dieselCO2).toLocaleString()}</td></tr>
                                 <tr><td>Huidige mix</td><td>${Math.round(gemengdCO2).toLocaleString()}</td></tr>
-                                <tr><td>100% HVO100</td><td>${Math.round(hvoCO2).toLocaleString()}</td></tr>
+                                <tr><td>100% HVO100${hvoMeerverbruikCorrectie ? ' (met meerverbruik)' : ''}</td><td>${Math.round(hvoCO2).toLocaleString()}</td></tr>
                             </table>
                             
                             <h2>CO2-besparing</h2>
@@ -284,7 +313,6 @@
                                 <tr><td>Relatieve besparing</td><td>${besparingPercentage.toFixed(1)}%</td></tr>
                             </table>
                             
-                            <!-- NIEUW: Kosteninformatie in export -->
                             <h2>Kosteninformatie</h2>
                             <table>
                                 <tr><th>Kostentype</th><th>Waarde</th></tr>
@@ -297,32 +325,33 @@
                             </table>
                         `;
                     } else {
+                        const dieselLitersReductiedoel = Math.round(dieselVerbruik - (dieselVerbruik * benodigdHvoPercentage / 100));
                         content += `
                             <h2>Reductiedoel Berekening</h2>
                             <table>
                                 <tr><th>Parameter</th><th>Waarde</th></tr>
-                                <tr><td>Totaal brandstofverbruik</td><td>${dieselVerbruik.toLocaleString()} liter</td></tr>
+                                <tr><td>Totaal brandstofverbruik (basis)</td><td>${dieselVerbruik.toLocaleString()} liter</td></tr>
                                 <tr><td>Berekeningsmethode</td><td>${berekeningsmethode.toUpperCase()}</td></tr>
                                 <tr><td>Diesel ${berekeningsmethode.toUpperCase()} CO2-factor</td><td>${dieselWTW} kg CO2/liter</td></tr>
                                 <tr><td>HVO100 ${berekeningsmethode.toUpperCase()} CO2-factor</td><td>${hvoWTW} kg CO2/liter</td></tr>
                                 <tr><td>Gewenste CO2-reductie</td><td>${doelReductiePercentage}%</td></tr>
+                                <tr><td>HVO100 meerverbruik correctie</td><td>${hvoMeerverbruikCorrectie ? 'Ja (+1.8%)' : 'Nee'}</td></tr>
                             </table>
                             
-                            <h2>Benodigde HVO100</h2>
+                            <h2>Benodigde HVO100 ${hvoMeerverbruikCorrectie ? '(inclusief 1.8% meerverbruik)' : ''}</h2>
                             <table>
                                 <tr><th>Parameter</th><th>Waarde</th></tr>
                                 <tr><td>Benodigd HVO100 percentage</td><td>${benodigdHvoPercentage.toFixed(1)}%</td></tr>
                                 <tr><td>Benodigde HVO100 hoeveelheid</td><td>${Math.round(benodigdHvoLiters).toLocaleString()} liter</td></tr>
-                                <tr><td>Resterende diesel hoeveelheid</td><td>${Math.round(dieselVerbruik - benodigdHvoLiters).toLocaleString()} liter</td></tr>
+                                <tr><td>Resterende diesel hoeveelheid</td><td>${dieselLitersReductiedoel.toLocaleString()} liter</td></tr>
                             </table>
                             
-                            <!-- NIEUW: Kosteninformatie voor reductiedoel in export -->
                             <h2>Kosteninformatie voor reductiedoel</h2>
                             <table>
                                 <tr><th>Kostentype</th><th>Waarde</th></tr>
                                 <tr><td>Kosten 100% Diesel</td><td>€ ${Math.round(volledgeDieselKosten).toLocaleString()}</td></tr>
                                 <tr><td>Kosten reductiedoel mix</td><td>€ ${Math.round(reductiedoelKosten).toLocaleString()}</td></tr>
-                                <tr><td>- waarvan Diesel</td><td>€ ${Math.round((dieselVerbruik - benodigdHvoLiters) * (DIESEL_PRICE_PER_100L / 100)).toLocaleString()}</td></tr>
+                                <tr><td>- waarvan Diesel</td><td>€ ${Math.round(dieselLitersReductiedoel * (DIESEL_PRICE_PER_100L / 100)).toLocaleString()}</td></tr>
                                 <tr><td>- waarvan HVO100</td><td>€ ${Math.round(benodigdHvoLiters * (HVO100_PRICE_PER_100L / 100)).toLocaleString()}</td></tr>
                                 <tr><td>Absoluut kostenverschil</td><td>€ ${Math.round(reductiedoelKostenVerschil).toLocaleString()}</td></tr>
                                 <tr><td>Relatief kostenverschil</td><td>${reductiedoelKostenVerschilPercentage.toFixed(1)}%</td></tr>
@@ -342,6 +371,11 @@
                                 De prijsberekeningen zijn gebaseerd op gemiddelde prijzen: Diesel €${DIESEL_PRICE_PER_100L.toFixed(2)} per 100L, 
                                 HVO100 €${HVO100_PRICE_PER_100L.toFixed(2)} per 100L. Prijsverschil: ${PRICE_DIFFERENCE_PERCENTAGE.toFixed(1)}%.
                             </p>
+                            ${hvoMeerverbruikCorrectie ? `
+                            <p style="font-style: italic;">
+                                HVO100 meerverbruik correctie van ${HVO100_MEERVERBRUIK_PERCENTAGE}% is toegepast op basis van studies naar volumegebaseerd verbruik.
+                            </p>
+                            ` : ''}
                         </body>
                         </html>
                     `;
@@ -367,12 +401,12 @@
             const PrinterIcon = () => (
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
                     <rect x="6" y="14" width="12" height="8"></rect>
                 </svg>
             );
             
-            // NIEUW: Prijsinformatie component voor simulator tab
+            // Prijsinformatie component voor simulator tab
             const PrijsInformatieComponent = ({ 
               dieselKosten, 
               hvoKosten, 
@@ -417,13 +451,14 @@
                     </div>
                     <p className="mt-4 text-sm text-gray-600">
                       Gemiddeld prijsverschil tussen HVO100 en diesel is ongeveer 8% (gebaseerd op historische data).
+                      {hvoMeerverbruikCorrectie && ` HVO100 meerverbruik van ${HVO100_MEERVERBRUIK_PERCENTAGE}% is meegenomen in de berekening.`}
                     </p>
                   </div>
                 </div>
               );
             };
 
-            // NIEUW: Prijsinformatie component voor reductiedoel tab
+            // Prijsinformatie component voor reductiedoel tab
             const ReductiedoelPrijsComponent = ({ 
               volledgeDieselKosten, 
               reductiedoelKosten, 
@@ -432,7 +467,7 @@
               benodigdHvoLiters,
               dieselVerbruik
             }) => {
-              const dieselLiters = dieselVerbruik - benodigdHvoLiters;
+              const dieselLiters = dieselVerbruik - (dieselVerbruik * benodigdHvoPercentage / 100);
               const dieselKosten = dieselLiters * (DIESEL_PRICE_PER_100L / 100);
               const hvoKosten = benodigdHvoLiters * (HVO100_PRICE_PER_100L / 100);
               
@@ -472,6 +507,7 @@
                    </div>
                    <p className="mt-4 text-sm text-gray-600">
                      Gemiddeld prijsverschil tussen HVO100 en diesel is ongeveer 8% (gebaseerd op historische data).
+                     {hvoMeerverbruikCorrectie && ` HVO100 meerverbruik van ${HVO100_MEERVERBRUIK_PERCENTAGE}% is meegenomen in de berekening.`}
                    </p>
                  </div>
                </div>
@@ -480,6 +516,14 @@
                       
            // Render methode voor simulator tab
            const renderSimulatorTab = () => {
+               // AANGEPAST: Bereken werkelijke volumes met meerverbruik correctie
+               const dieselVolumeActueel = dieselVerbruik * (1 - hvoPercentage / 100);
+               let hvoVolumeActueel = dieselVerbruik * (hvoPercentage / 100);
+               
+               if (hvoMeerverbruikCorrectie) {
+                   hvoVolumeActueel = hvoVolumeActueel * (1 + HVO100_MEERVERBRUIK_PERCENTAGE / 100);
+               }
+               
                return (
                    <>
                        {/* Visualisatie van CO2-reductie */}
@@ -530,16 +574,18 @@
                                <div className="text-center p-2 bg-red-50 rounded">
                                    <h3 className="text-sm font-medium text-gray-700">Dieselverbruik</h3>
                                    <p className="text-xl font-bold text-red-600">
-                                       {Math.round(dieselVerbruik * (1 - hvoPercentage / 100)).toLocaleString()} liter
+                                       {Math.round(dieselVolumeActueel).toLocaleString()} liter
                                    </p>
-                                   <p className="text-xs text-gray-500">({(100 - hvoPercentage)}% van totaal)</p>
+                                   <p className="text-xs text-gray-500">({(100 - hvoPercentage)}% van basis)</p>
                                </div>
                                <div className="text-center p-2 bg-green-50 rounded">
                                    <h3 className="text-sm font-medium text-gray-700">HVO100 verbruik</h3>
                                    <p className="text-xl font-bold text-green-600">
-                                       {Math.round(dieselVerbruik * (hvoPercentage / 100)).toLocaleString()} liter
+                                       {Math.round(hvoVolumeActueel).toLocaleString()} liter
                                    </p>
-                                   <p className="text-xs text-gray-500">({hvoPercentage}% van totaal)</p>
+                                   <p className="text-xs text-gray-500">
+                                       ({hvoPercentage}% van basis{hvoMeerverbruikCorrectie ? ` +${HVO100_MEERVERBRUIK_PERCENTAGE}%` : ''})
+                                   </p>
                                </div>
                            </div>
                        </div>
@@ -560,6 +606,9 @@
                                <div className="p-4 bg-white rounded-lg shadow">
                                    <h3 className="text-lg font-medium mb-2 text-gray-800">Uitstoot met 100% HVO100</h3>
                                    <p className="text-3xl font-bold text-green-600">{Math.round(hvoCO2).toLocaleString()} kg CO2</p>
+                                   {hvoMeerverbruikCorrectie && (
+                                       <p className="text-xs text-gray-500 mt-1">Incl. {HVO100_MEERVERBRUIK_PERCENTAGE}% meerverbruik</p>
+                                   )}
                                </div>
                            </div>
                            
@@ -578,7 +627,7 @@
                            </div>
                        </div>
                        
-                       {/* NIEUW: Prijsinformatie component toevoegen */}
+                       {/* Prijsinformatie component toevoegen */}
                        <PrijsInformatieComponent 
                          dieselKosten={dieselKosten}
                          hvoKosten={hvoKosten}
@@ -593,8 +642,12 @@
                       
            // Render methode voor reductiedoel tab
            const renderReductiedoelTab = () => {
-               // Bereken maximale reductie voor deze brandstofcombinatie
-               const maxReductie = ((dieselWTW - hvoWTW) / dieselWTW) * 100;
+               // AANGEPAST: Bereken maximale reductie voor deze brandstofcombinatie met meerverbruik correctie
+               let effectieveHvoWTW = hvoWTW;
+               if (hvoMeerverbruikCorrectie) {
+                   effectieveHvoWTW = hvoWTW * (1 + HVO100_MEERVERBRUIK_PERCENTAGE / 100);
+               }
+               const maxReductie = ((dieselWTW - effectieveHvoWTW) / dieselWTW) * 100;
                
                return (
                    <>
@@ -602,7 +655,7 @@
                            <h2 className="text-xl font-semibold mb-2 text-yellow-700">CO2-reductiedoel</h2>
                            <p className="text-xs text-gray-600 mb-3">
                                Voer hieronder het gewenste CO2-reductiepercentage in. De calculator berekent hoeveel HVO100 hiervoor nodig is.
-                               De maximaal haalbare reductie met HVO100 is {maxReductie.toFixed(1)}% bij de huidige emissiefactoren.
+                               De maximaal haalbare reductie met HVO100 is {maxReductie.toFixed(1)}% bij de huidige emissiefactoren{hvoMeerverbruikCorrectie ? ` (inclusief ${HVO100_MEERVERBRUIK_PERCENTAGE}% meerverbruik)` : ''}.
                            </p>
                            
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -646,7 +699,10 @@
                        </div>
                        
                        <div className="mb-8 p-4 bg-green-50 rounded-lg">
-                           <h2 className="text-xl font-semibold mb-4 pvdnat-text">Benodigde brandstofmix voor reductiedoel</h2>
+                           <h2 className="text-xl font-semibold mb-4 pvdnat-text">
+                               Benodigde brandstofmix voor reductiedoel
+                               {hvoMeerverbruikCorrectie && ` (incl. ${HVO100_MEERVERBRUIK_PERCENTAGE}% HVO100 meerverbruik)`}
+                           </h2>
                            
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                <div className="p-5 bg-white rounded-lg shadow">
@@ -659,6 +715,9 @@
                                        <span className="text-sm text-gray-600">HVO100 volume:</span>
                                        <span className="text-xl font-bold text-green-600">{Math.round(benodigdHvoLiters).toLocaleString()} liter</span>
                                    </div>
+                                   {hvoMeerverbruikCorrectie && (
+                                       <p className="text-xs text-gray-500 mt-2">Inclusief {HVO100_MEERVERBRUIK_PERCENTAGE}% meerverbruik</p>
+                                   )}
                                </div>
                                
                                <div className="p-5 bg-white rounded-lg shadow">
@@ -669,7 +728,7 @@
                                    </div>
                                    <div className="flex items-center justify-between">
                                        <span className="text-sm text-gray-600">Diesel volume:</span>
-                                       <span className="text-xl font-bold text-red-600">{Math.round(dieselVerbruik - benodigdHvoLiters).toLocaleString()} liter</span>
+                                       <span className="text-xl font-bold text-red-600">{Math.round(dieselVerbruik - (dieselVerbruik * benodigdHvoPercentage / 100)).toLocaleString()} liter</span>
                                    </div>
                                </div>
                            </div>
@@ -701,7 +760,7 @@
                            </div>
                        </div>
                        
-                       {/* NIEUW: Prijsinformatie component toevoegen */}
+                       {/* Prijsinformatie component toevoegen */}
                        <ReductiedoelPrijsComponent 
                          volledgeDieselKosten={volledgeDieselKosten}
                          reductiedoelKosten={reductiedoelKosten}
@@ -751,6 +810,32 @@
                        >
                            Reductiedoel Berekening
                        </button>
+                   </div>
+                   
+                   {/* NIEUW: HVO100 Meerverbruik Correctie - gemeenschappelijk voor beide tabs */}
+                   <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                       <h2 className="text-xl font-semibold mb-2 text-orange-700">HVO100 Meerverbruik Correctie</h2>
+                       <p className="text-xs text-gray-600 mb-3">
+                           Studies tonen aan dat HVO100 een volumegebaseerd meerverbruik van ongeveer 1.8% heeft ten opzichte van diesel. 
+                           Dit betekent dat u meer HVO100 nodig heeft voor dezelfde prestatie. U kunt deze correctie hieronder in- of uitschakelen.
+                       </p>
+                       <div className="flex items-center">
+                           <input
+                               type="checkbox"
+                               id="hvoMeerverbruikCorrectie"
+                               checked={hvoMeerverbruikCorrectie}
+                               onChange={(e) => setHvoMeerverbruikCorrectie(e.target.checked)}
+                               className="mr-3 h-4 w-4"
+                           />
+                           <label htmlFor="hvoMeerverbruikCorrectie" className="text-sm font-medium text-gray-700">
+                               Toepassen van {HVO100_MEERVERBRUIK_PERCENTAGE}% HVO100 meerverbruik correctie
+                           </label>
+                       </div>
+                       {hvoMeerverbruikCorrectie && (
+                           <div className="mt-2 p-2 bg-orange-100 rounded text-xs text-orange-700">
+                               <strong>Actief:</strong> HVO100 verbruik wordt verhoogd met {HVO100_MEERVERBRUIK_PERCENTAGE}% in alle berekeningen.
+                           </div>
+                       )}
                    </div>
                    
                    {/* Berekeningsmethode keuze - gemeenschappelijk voor beide tabs */}
@@ -804,7 +889,7 @@
                        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                            <div>
                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                   Dieselverbruik (liters per jaar)
+                                   Brandstofverbruik (liters per jaar, basis diesel-equivalent)
                                </label>
                                <input
                                    type="number"
@@ -812,6 +897,9 @@
                                    onChange={(e) => setDieselVerbruik(Number(e.target.value))}
                                    className="w-full p-2 border border-gray-300 rounded"
                                />
+                               <p className="text-xs text-gray-500 mt-1">
+                                   Dit is het basisverbruik. Bij HVO100 meerverbruik correctie wordt dit automatisch aangepast.
+                               </p>
                            </div>
                        </div>
                    </div>
