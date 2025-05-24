@@ -812,32 +812,6 @@
                        </button>
                    </div>
                    
-                   {/* NIEUW: HVO100 Meerverbruik Correctie - gemeenschappelijk voor beide tabs */}
-                   <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                       <h2 className="text-xl font-semibold mb-2 text-orange-700">HVO100 Meerverbruik Correctie</h2>
-                       <p className="text-xs text-gray-600 mb-3">
-                           Studies tonen aan dat HVO100 een volumegebaseerd meerverbruik van ongeveer 1.8% heeft ten opzichte van diesel. 
-                           Dit betekent dat u meer HVO100 nodig heeft voor dezelfde prestatie. U kunt deze correctie hieronder in- of uitschakelen.
-                       </p>
-                       <div className="flex items-center">
-                           <input
-                               type="checkbox"
-                               id="hvoMeerverbruikCorrectie"
-                               checked={hvoMeerverbruikCorrectie}
-                               onChange={(e) => setHvoMeerverbruikCorrectie(e.target.checked)}
-                               className="mr-3 h-4 w-4"
-                           />
-                           <label htmlFor="hvoMeerverbruikCorrectie" className="text-sm font-medium text-gray-700">
-                               Toepassen van {HVO100_MEERVERBRUIK_PERCENTAGE}% HVO100 meerverbruik correctie
-                           </label>
-                       </div>
-                       {hvoMeerverbruikCorrectie && (
-                           <div className="mt-2 p-2 bg-orange-100 rounded text-xs text-orange-700">
-                               <strong>Actief:</strong> HVO100 verbruik wordt verhoogd met {HVO100_MEERVERBRUIK_PERCENTAGE}% in alle berekeningen.
-                           </div>
-                       )}
-                   </div>
-                   
                    {/* Berekeningsmethode keuze - gemeenschappelijk voor beide tabs */}
                    <div className="mb-6 p-4 bg-yellow-50 rounded-lg">
                        <h2 className="text-xl font-semibold mb-2 text-yellow-700">Berekeningsmethode</h2>
@@ -881,6 +855,32 @@
                                </div>
                            </div>
                        </div>
+                   </div>
+                   
+                   {/* NIEUW: HVO100 Meerverbruik Correctie - verplaatst naar onder berekeningsmethode */}
+                   <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                       <h2 className="text-xl font-semibold mb-2 text-orange-700">HVO100 Meerverbruik Correctie</h2>
+                       <p className="text-xs text-gray-600 mb-3">
+                           Studies tonen aan dat HVO100 een volumegebaseerd meerverbruik van ongeveer 1.8% heeft ten opzichte van diesel. 
+                           Dit betekent dat u meer HVO100 nodig heeft voor dezelfde prestatie. U kunt deze correctie hieronder in- of uitschakelen.
+                       </p>
+                       <div className="flex items-center">
+                           <input
+                               type="checkbox"
+                               id="hvoMeerverbruikCorrectie"
+                               checked={hvoMeerverbruikCorrectie}
+                               onChange={(e) => setHvoMeerverbruikCorrectie(e.target.checked)}
+                               className="mr-3 h-4 w-4"
+                           />
+                           <label htmlFor="hvoMeerverbruikCorrectie" className="text-sm font-medium text-gray-700">
+                               Toepassen van {HVO100_MEERVERBRUIK_PERCENTAGE}% HVO100 meerverbruik correctie
+                           </label>
+                       </div>
+                       {hvoMeerverbruikCorrectie && (
+                           <div className="mt-2 p-2 bg-orange-100 rounded text-xs text-orange-700">
+                               <strong>Actief:</strong> HVO100 verbruik wordt verhoogd met {HVO100_MEERVERBRUIK_PERCENTAGE}% in alle berekeningen.
+                           </div>
+                       )}
                    </div>
                    
                    {/* Invoergegevens - gemeenschappelijk voor beide tabs */}
